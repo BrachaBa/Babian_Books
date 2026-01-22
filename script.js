@@ -1,6 +1,7 @@
 // אתחול האנימציות
 AOS.init();
-
+// הצגת עלות משלוח דינמית
+document.getElementById('shippingCostDisplay').textContent = CONFIG.SHIPPING_COST;
 // האזנה לסיום כניסת התמונה
 document.addEventListener('aos:in:5maynl', () => {
     const title = document.getElementById('m44m59');
@@ -71,17 +72,6 @@ function updatePriceDisplay(pricing) {
             `כל הכבוד! חסכת ₪${pricing.discountAmount} עם הנחת ${pricing.discountTier.label}`;
     } else {
         discountRow.classList.add('hidden');
-
-        // הצגת הודעה על הנחה הבאה
-        const nextTier = DISCOUNT_TIERS.find(t => t.minQty > pricing.qty);
-        if (nextTier) {
-            discountNotice.classList.remove('hidden');
-            const moreNeeded = nextTier.minQty - pricing.qty;
-            document.getElementById('discountMessage').textContent =
-                `הוסף עוד ${moreNeeded} ספרים וקבל הנחה של ${nextTier.label}!`;
-        } else {
-            discountNotice.classList.add('hidden');
-        }
     }
 }
 
@@ -331,4 +321,73 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // עדכון ראשוני
     updateView();
+
+    // טיפול בטופס יצירת קשר
+    const contactForm = document.getElementById('contactForm');
+    console.log('Contact form found:', contactForm); // Debug log
+    if (contactForm) {
+        contactForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            console.log('Contact form submitted'); // Debug log
+
+            const submitBtn = contactForm.querySelector('button[type="submit"]');
+            const statusMsg = document.getElementById('contactFormStatus');
+            const formData = new FormData(this);
+
+            // בדיקת תקינות השדות
+            if (!this.checkValidity()) {
+                this.reportValidity();
+                return;
+            }
+
+            // שינוי מצב הכפתור
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>שולח...</span>';
+
+            statusMsg.textContent = 'שולח הודעה...';
+            statusMsg.className = 'text-center text-sm mt-4 text-gold-400 block';
+
+            // הכנת נתונים לשליחה
+            const contactData = {
+                type: 'contact',
+                name: formData.get('contactName'),
+                email: formData.get('contactEmail'),
+                phone: formData.get('contactPhone'),
+                message: formData.get('contactMessage'),
+                timestamp: new Date().toLocaleString('he-IL')
+            };
+
+            try {
+                // שליחה ל-Google Sheets
+                await fetch(scriptURL, {
+                    method: "POST",
+                    mode: 'no-cors',
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(contactData)
+                });
+
+                // הצגת הודעת הצלחה
+                statusMsg.textContent = '✓ ההודעה נשלחה בהצלחה! נחזור אליך בהקדם.';
+                statusMsg.className = 'text-center text-sm mt-4 text-green-400 font-bold block';
+
+                // איפוס הטופס
+                this.reset();
+
+                // החזרת הכפתור למצב רגיל
+                setTimeout(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> <span>שלח הודעה</span>';
+                    statusMsg.className = 'text-center text-sm mt-4 hidden';
+                }, 3000);
+
+            } catch (error) {
+                console.error('Error sending contact form:', error);
+                statusMsg.textContent = 'אירעה שגיאה בשליחה. אנא נסה שנית.';
+                statusMsg.className = 'text-center text-sm mt-4 text-red-400 block';
+
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> <span>שלח הודעה</span>';
+            }
+        });
+    }
 });
