@@ -1,0 +1,136 @@
+body {
+    scroll-behavior: smooth;
+}
+
+.gold-gradient-text {
+    background: linear-gradient(to right, #D4AF37, #FCD34D, #D4AF37);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-size: 200% auto;
+    animation: shine 3s linear infinite;
+}
+
+.gold-gradient-bg {
+    background: linear-gradient(135deg, #B4941F 0%, #D4AF37 50%, #FCD34D 100%);
+}
+
+@keyframes shine {
+    to {
+        background-position: 200% center;
+    }
+}
+
+/* 3D Book Effect */
+.book-container {
+    perspective: 1000px;
+}
+
+.book {
+    width: 300px;
+    height: 480px;
+    position: relative;
+    transform-style: preserve-3d;
+    transform: rotateY(-25deg);
+    transition: transform 0.5s ease;
+    box-shadow: 20px 20px 30px rgba(0,0,0,0.5);
+}
+
+.book:hover {
+    transform: rotateY(-15deg) translateY(-10px);
+}
+
+.book-front {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: #0f172a;
+    border: 2px solid #D4AF37;
+    border-radius: 4px 10px 10px 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 40px 20px;
+    text-align: center;
+    z-index: 2;
+}
+
+.book-spine {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 40px;
+    height: 100%;
+    background: #D4AF37;
+    transform: rotateY(90deg) translateZ(-20px);
+    z-index: 1;
+    box-shadow: inset 5px 0 10px rgba(0,0,0,0.2);
+}
+
+/* Compass Icon CSS Construction for Book Cover */
+.compass-icon {
+    font-size: 80px;
+    color: #D4AF37;
+    text-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+}
+
+@keyframes floating {
+    0% { transform: translate(0, 0px); }
+    50% { transform: translate(10px, 15px); }
+    100% { transform: translate(0, -0px); }
+}
+
+.floating-book {
+    animation-name: floating;
+    animation-duration: 4s;
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-in-out;
+}
+
+@keyframes shine-gold {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+}
+
+.gold-shine-active {
+    background: linear-gradient(90deg,
+        rgba(212,175,55,1) 0%,
+        rgba(252,211,77,1) 50%,
+        rgba(212,175,55,1) 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shine-gold 2s ease-out;
+}
+
+/* Download Button Pulse Animation */
+@keyframes pulse-glow {
+    0%, 100% {
+        box-shadow: 0 10px 15px -3px rgba(212, 175, 55, 0.3),
+                    0 4px 6px -4px rgba(212, 175, 55, 0.3);
+    }
+    50% {
+        box-shadow: 0 10px 25px -3px rgba(212, 175, 55, 0.5),
+                    0 8px 10px -4px rgba(212, 175, 55, 0.5);
+    }
+}
+
+.download-button-pulse {
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* PDF Icon Bounce */
+@keyframes bounce-subtle {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-5px);
+    }
+}
+
+.pdf-icon-bounce {
+    animation: bounce-subtle 2s ease-in-out infinite;
+}
