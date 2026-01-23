@@ -87,38 +87,49 @@ function updateView() {
     const qtySelect = document.getElementById('quantity');
     const manualInput = document.getElementById('manualQty');
     const isShipping = document.getElementById('shippingOption').checked;
-    const addrSection = document.getElementById('addressSection');
-    const addrInput = document.getElementById('address');
-    const btnText = document.getElementById('btnText');
-    const btnIcon = document.getElementById('btnIcon');
+    const couponInput = document.getElementById('couponCode');
+    const couponMsg = document.getElementById('couponMessage');
+    const totalPriceDisplay = document.getElementById('totalPriceDisplay');
 
-    // קבלת כמות
-    let qty = 1;
-    if (qtySelect.value === 'manual') {
-        manualInput.classList.remove('hidden');
-        manualInput.required = true;
-        qty = parseInt(manualInput.value) || 1;
+    // 1. קביעת כמות
+    let qty = qtySelect.value === 'manual' ? (parseInt(manualInput.value) || 0) : parseInt(qtySelect.value);
+
+    // 2. חישוב בסיס (ספרים בלבד)
+    let subtotal = qty * CONFIG.BOOK_PRICE;
+
+    // 3. בדיקת קופון והחלת הנחה
+    if (couponInput.value.trim().toUpperCase() === CONFIG.COUPON_CODE) {
+        let discountAmount = (subtotal * CONFIG.DISCOUNT_PERCENT) / 100;
+        subtotal -= discountAmount;
+        couponMsg.textContent = `קופון הוחל! ${CONFIG.DISCOUNT_PERCENT}% הנחה`;
+        couponMsg.className = "text-xs mt-1 text-green-400 block";
+    } else if (couponInput.value.trim() !== "") {
+        couponMsg.textContent = "קוד קופון לא תקין";
+        couponMsg.className = "text-xs mt-1 text-red-400 block";
     } else {
-        manualInput.classList.add('hidden');
-        manualInput.required = false;
-        qty = parseInt(qtySelect.value) || 1;
+        couponMsg.classList.add('hidden');
     }
 
-    // חישוב מחיר מלא
-    const pricing = calculatePrice(qty, isShipping);
-    updatePriceDisplay(pricing);
+    // 4. הוספת משלוח (הנחה בדרך כלל לא חלה על משלוח)
+    let finalTotal = subtotal + (isShipping ? CONFIG.SHIPPING_COST : 0);
 
-    // עדכון כפתורים וכתובת
+    // 5. עדכון תצוגה
+    totalPriceDisplay.textContent = '₪' + Math.round(finalTotal);
+
+    // קריאה לפונקציות הניהול האחרות (כמו הצגת כתובת/כפתורים) שכתבנו קודם
+    manageLayout(isShipping);
+}
+
+// פונקציית עזר לניהול נראות (לפי הקוד הקודם)
+function manageLayout(isShipping) {
+    const addrSection = document.getElementById('addressSection');
+    const btnText = document.getElementById('btnText');
     if (isShipping) {
         addrSection.classList.remove('hidden');
-        addrInput.required = true;
         btnText.textContent = "שמירת פרטים להזמנה עתידית";
-        btnIcon.className = "fas fa-user-plus";
     } else {
         addrSection.classList.add('hidden');
-        addrInput.required = false;
         btnText.textContent = "עבור לתשלום מאובטח";
-        btnIcon.className = "fas fa-credit-card";
     }
 }
 
@@ -141,6 +152,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const shippingOption = document.getElementById('shippingOption');
     if (pickupOption) pickupOption.addEventListener('change', updateView);
     if (shippingOption) shippingOption.addEventListener('change', updateView);
+
+    // מאזין לשינוי בקוד הקופון
+    const couponInput = document.getElementById('couponCode');
+    if (couponInput) {
+        couponInput.addEventListener('input', updateView);
+    }
 
     // פונקציה לשמירת נתונים ב-Google Sheets
     async function saveToGoogleSheets(formData, qty, isPickup, paymentStatus = 'לא שולם', orderId = '') {
@@ -366,7 +383,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
 
                 // הצגת הודעת הצלחה
-                statusMsg.textContent = '✓ ההודעה נשלחה בהצלחה! נחזור אליך בהקדם.';
+                statusMsg.textContent = '✓ ההודעה נשלחה בהצלחה';
                 statusMsg.className = 'text-center text-sm mt-4 text-green-400 font-bold block';
 
                 // איפוס הטופס

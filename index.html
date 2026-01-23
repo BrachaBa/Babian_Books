@@ -410,7 +410,7 @@
                         <label class="flex items-center gap-3 text-gray-300 cursor-pointer">
                             <input type="radio" name="deliveryType" value="pickup" checked
                                 class="w-4 h-4 accent-gold-500" id="pickupOption" onchange="updateView()">
-                            <span>איסוף עצמי ממזרח בני ברק (0 ₪)</span>
+                            <span>איסוף עצמי מבני ברק (0 ₪)</span>
                         </label>
                         <label class="flex items-center gap-3 text-gray-300 cursor-pointer">
                             <input type="radio" name="deliveryType" value="shipping" class="w-4 h-4 accent-gold-500"
@@ -432,6 +432,14 @@
                         class="w-full px-4 py-3 bg-navy-900 border border-gray-700 rounded-lg focus:ring-2 focus:ring-gold-500 text-white outline-none"
                         placeholder="רחוב, מספר בית, עיר">
                 </div>
+                <div class="mt-4">
+    <label for="couponCode" class="block text-sm font-medium text-gray-300 mb-2">קוד קופון (אם יש)</label>
+    <div class="flex gap-2">
+        <input type="text" id="couponCode" class="flex-1 px-4 py-2 bg-navy-900 border border-gray-700 rounded-lg text-white outline-none" placeholder="הזן קוד">
+        <button type="button" onclick="updateView()" class="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition">החל</button>
+    </div>
+    <p id="couponMessage" class="text-xs mt-1 hidden"></p>
+</div>
                 <div class="bg-gold-500/10 p-4 rounded-lg border border-gold-500/30 my-6">
                     <!-- Price Breakdown -->
                     <div class="space-y-2 text-sm" id="priceBreakdown">
@@ -550,8 +558,14 @@
 
         <!-- Copyright Notice -->
         <div class="border-t border-white/5 py-6">
-            <div class="container mx-auto px-6 text-center text-gray-500 text-sm">
+            <div class="container mx-auto px-6 text-center text-gray-500 text-sm space-y-2">
                 <p>© 2026 - הרב יהושע בביאן. כל הזכויות שמורות.</p>
+                <p class="text-xs">
+                    <a href="mailto:ba161977@gmail.com" class="text-gold-500 hover:text-gold-400 transition duration-300 inline-flex items-center gap-2">
+                        <i class="fas fa-envelope"></i>
+                        <span>Bracha עיצוב ופיתוח אתרים</span>
+                    </a>
+                </p>
             </div>
         </div>
     </footer>
