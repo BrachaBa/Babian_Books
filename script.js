@@ -319,8 +319,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // עדכון ראשוני
-    updateView();
+
 
     // טיפול בטופס יצירת קשר
     const contactForm = document.getElementById('contactForm');
@@ -391,3 +390,5 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+    // עדכון ראשוני
+    updateView();
