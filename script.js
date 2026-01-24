@@ -1,3 +1,13 @@
+// גורם לדף להיטען תמיד בנקודה העליונה ביותר
+window.onbeforeunload = function () {
+    window.scrollTo(0, 0);
+};
+
+// גיבוי נוסף בזמן שהדף נטען
+if ('scrollRestoration' in history) {
+    history.scrollRestoration = 'manual';
+}
+
 // אתחול האנימציות
 AOS.init();
 // הצגת עלות משלוח דינמית
@@ -28,12 +38,22 @@ function getDiscount(qty) {
     return { discount: 0, label: '0%' };
 }
 
-function calculatePrice(qty, isShipping) {
+function calculatePrice(qty, isShipping, couponCode = '') {
     const unitPrice = BOOK_PRICE;
     const subtotal = qty * unitPrice;
     const discountTier = getDiscount(qty);
     const discountAmount = Math.round(subtotal * discountTier.discount);
-    const afterDiscount = subtotal - discountAmount;
+    let afterDiscount = subtotal - discountAmount;
+
+    // הוספת הנחת קופון
+    let couponDiscount = 0;
+    let couponApplied = false;
+    if (couponCode.trim().toUpperCase() === CONFIG.COUPON_CODE) {
+        couponDiscount = Math.round((afterDiscount * CONFIG.DISCOUNT_PERCENT) / 100);
+        afterDiscount -= couponDiscount;
+        couponApplied = true;
+    }
+
     const shippingCost = isShipping ? SHIPPING_COST : 0;
     const total = afterDiscount + shippingCost;
 
@@ -43,6 +63,8 @@ function calculatePrice(qty, isShipping) {
         subtotal,
         discountTier,
         discountAmount,
+        couponDiscount,
+        couponApplied,
         afterDiscount,
         shippingCost,
         total
@@ -91,32 +113,42 @@ function updateView() {
     const couponMsg = document.getElementById('couponMessage');
     const totalPriceDisplay = document.getElementById('totalPriceDisplay');
 
-    // 1. קביעת כמות
+    // קביעת כמות
     let qty = qtySelect.value === 'manual' ? (parseInt(manualInput.value) || 0) : parseInt(qtySelect.value);
 
-    // 2. חישוב בסיס (ספרים בלבד)
-    let subtotal = qty * CONFIG.BOOK_PRICE;
+    // חישוב מחיר עם קופון
+    const couponCode = couponInput.value.trim();
+    const pricing = calculatePrice(qty, isShipping, couponCode);
 
-    // 3. בדיקת קופון והחלת הנחה
-    if (couponInput.value.trim().toUpperCase() === CONFIG.COUPON_CODE) {
-        let discountAmount = (subtotal * CONFIG.DISCOUNT_PERCENT) / 100;
-        subtotal -= discountAmount;
-        couponMsg.textContent = `קופון הוחל! ${CONFIG.DISCOUNT_PERCENT}% הנחה`;
-        couponMsg.className = "text-xs mt-1 text-green-400 block";
-    } else if (couponInput.value.trim() !== "") {
-        couponMsg.textContent = "קוד קופון לא תקין";
+    // הצגת הודעת קופון
+    if (couponCode.toUpperCase() === CONFIG.COUPON_CODE) {
+        couponMsg.textContent = `✓ קופון הוחל! ${CONFIG.DISCOUNT_PERCENT}% הנחה (חיסכון של ₪${pricing.couponDiscount})`;
+        couponMsg.className = "text-xs mt-1 text-green-400 block font-bold";
+    } else if (couponCode !== "") {
+        couponMsg.textContent = "✗ קוד קופון לא תקין";
         couponMsg.className = "text-xs mt-1 text-red-400 block";
     } else {
-        couponMsg.classList.add('hidden');
+        couponMsg.textContent = "";
+        couponMsg.className = "text-xs mt-1 hidden";
     }
 
-    // 4. הוספת משלוח (הנחה בדרך כלל לא חלה על משלוח)
-    let finalTotal = subtotal + (isShipping ? CONFIG.SHIPPING_COST : 0);
+    // עדכון תצוגה
+    totalPriceDisplay.textContent = '₪' + Math.round(pricing.total);
 
-    // 5. עדכון תצוגה
-    totalPriceDisplay.textContent = '₪' + Math.round(finalTotal);
+    // הצגת הנחת קופון בפירוט המחיר
+    const couponRow = document.getElementById('couponDiscountRow');
+    if (couponRow) {
+        if (pricing.couponApplied && pricing.couponDiscount > 0) {
+            couponRow.classList.remove('hidden');
+            const couponAmountEl = document.getElementById('couponDiscountAmount');
+            if (couponAmountEl) {
+                couponAmountEl.textContent = '-₪' + pricing.couponDiscount;
+            }
+        } else {
+            couponRow.classList.add('hidden');
+        }
+    }
 
-    // קריאה לפונקציות הניהול האחרות (כמו הצגת כתובת/כפתורים) שכתבנו קודם
     manageLayout(isShipping);
 }
 
@@ -202,7 +234,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const manualInput = document.getElementById('manualQty');
         const qty = qtySelect.value === 'manual' ? parseInt(manualInput.value) || 1 : parseInt(qtySelect.value) || 1;
 
-        const pricing = calculatePrice(qty, isShipping);
+        // קבלת קוד קופון
+        const couponInput = document.getElementById('couponCode');
+        const couponCode = couponInput ? couponInput.value.trim() : '';
+
+        const pricing = calculatePrice(qty, isShipping, couponCode);
 
         paypal.Buttons({
             style: {
@@ -213,6 +249,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 height: 50
             },
             createOrder: function(data, actions) {
+                // חישוב סכום הפריטים הכולל לפני הנחות
+                const itemTotal = pricing.subtotal;
+                const totalDiscount = pricing.discountAmount + pricing.couponDiscount;
+
                 return actions.order.create({
                     purchase_units: [{
                         description: `${qty} ספרים - לכתוב את חייך מחדש`,
@@ -222,15 +262,15 @@ document.addEventListener('DOMContentLoaded', function() {
                             breakdown: {
                                 item_total: {
                                     currency_code: 'ILS',
-                                    value: pricing.afterDiscount.toString()
+                                    value: itemTotal.toString()
                                 },
                                 shipping: {
                                     currency_code: 'ILS',
                                     value: pricing.shippingCost.toString()
                                 },
-                                discount: pricing.discountAmount > 0 ? {
+                                discount: totalDiscount > 0 ? {
                                     currency_code: 'ILS',
-                                    value: pricing.discountAmount.toString()
+                                    value: totalDiscount.toString()
                                 } : undefined
                             }
                         }
@@ -255,6 +295,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     // הצלחה!
                     statusMsg.innerHTML = `✓ התשלום בוצע בהצלחה!<br>מזהה הזמנה: ${orderData.id}`;
                     statusMsg.className = "text-center text-lg mt-6 text-green-400 font-bold block bg-navy-800 p-4 rounded-lg border border-green-500/50";
+
+                    // איפוס הטופס
+                    leadForm.reset();
+
+                    // איפוס הודעות קופון ומצב תצוגה
+                    const couponMsg = document.getElementById('couponMessage');
+                    if (couponMsg) {
+                        couponMsg.textContent = "";
+                        couponMsg.className = "text-xs mt-1 hidden";
+                    }
+                    updateView();
 
                     // הפניה לעמוד תודה
                     setTimeout(() => {
@@ -327,6 +378,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     statusMsg.innerHTML = "פרטיך נשמרו בהצלחה! נחזור אליך כשיתאפשרו המשלוחים.";
                     statusMsg.className = "text-center text-lg mt-6 text-gold-400 font-bold block bg-navy-800 p-4 rounded-lg border border-gold-500/50";
                     submitBtn.classList.add('hidden');
+
+                    // איפוס הטופס
+                    this.reset();
+
+                    // איפוס הודעות קופון ומצב תצוגה
+                    const couponMsg = document.getElementById('couponMessage');
+                    if (couponMsg) {
+                        couponMsg.textContent = "";
+                        couponMsg.className = "text-xs mt-1 hidden";
+                    }
+                    updateView();
                 } else {
                     statusMsg.innerHTML = "אירעה שגיאה. נסה שנית.";
                     statusMsg.className = "text-center mt-4 text-red-500 block";
@@ -407,5 +469,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
     // עדכון ראשוני
     updateView();
